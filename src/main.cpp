@@ -3,9 +3,17 @@
 #include <Wire.h>
 #include <Adafruit_NeoPixel.h>
 #include <Debouncer.h>
+#include "Adafruit_ThinkInk.h"
+
+#define EPD_DC      7 
+#define EPD_CS      8
+#define EPD_BUSY    -1
+#define SRAM_CS     -1 
+#define EPD_RESET   6
 
 SensirionI2CScd4x scd4x;
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(4, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
+ThinkInk_290_Grayscale4_T5 display(EPD_DC, EPD_RESET, EPD_CS, SRAM_CS, EPD_BUSY);
 
 const int debounce_ms = 100;
 
@@ -57,7 +65,7 @@ void setup() {
         pixels.setPixelColor(i % 4, PURPLE);
         pixels.show();
         delay(100);
-        
+
         // Time out after 2 seconds.
         if (millis() - wait_start > 2000) break;
     }
@@ -96,13 +104,19 @@ void setup() {
         }
     }
 
+    display.begin(THINKINK_MONO);
+    display.clearBuffer();
+    display.display();
+
     Serial.println("Waiting for first measurement...");
 }
 
 void loop() {
     static int waitingForFirst = 0;
     static long lastUpdate = millis();
+    static long lastDisplay = millis();
     static bool lights = true;
+    static bool display_every = false;
     char errorMessage[256];
     uint16_t dataReady;
     static uint16_t co2;
@@ -129,6 +143,11 @@ void loop() {
             pixels.setBrightness(0);
         }
         pixels.show();
+    }
+
+    // Toggle displaying every update on button D release.
+    if (button_d.update(digitalRead(BUTTON_D)) && !button_d.get()) {
+        display_every = !display_every;
     }
 
     // Sweep a single blue pixel while waiting for the first measurement.
@@ -187,6 +206,28 @@ void loop() {
     Serial.print("\t");
     Serial.print("Humidity:");
     Serial.println(humidity);
+
+    // Update the display for the first measurement, or if showing every update,
+    // or after a minute since the last update.
+    if (!got_first_measurement || display_every || millis() - lastDisplay > 60000) {
+        static uint16_t previous_co2 = 0;
+        display.clearBuffer();
+        display.setTextColor(EPD_BLACK);
+
+        display.setTextSize(12);
+        display.setCursor(0, 15);
+        display.print(co2);
+
+        display.setTextSize(3);
+        display.setCursor(296 - (3*18), 128 - 24);
+        display.print("ppm");
+
+        if (previous_co2 != co2) {
+            display.display();
+        }
+        previous_co2 = co2;
+        lastDisplay = millis();
+    }
 }
 
 // clang-format off
