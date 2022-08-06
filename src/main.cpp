@@ -96,7 +96,6 @@ void setup() {
 }
 
 void loop() {
-    // -1 when there's been a first measurement.
     static int waitingForFirst = 0;
     static long lastUpdate = millis();
     static bool lights = true;
@@ -129,7 +128,7 @@ void loop() {
     }
 
     // Sweep a single blue pixel while waiting for the first measurement.
-    if (waitingForFirst >= 0) {
+    if (!got_first_measurement) {
         pixels.fill(OFF);
         pixels.setPixelColor(waitingForFirst % 4, BLUE);
         pixels.show();
@@ -166,7 +165,7 @@ void loop() {
     }
 
     // Stop sweep and dim after first successful measurement.
-    if (waitingForFirst >= 0) {
+    if (!got_first_measurement) {
         waitingForFirst = -1;
         if (lights) {
             pixels.setBrightness(running_brightness);
