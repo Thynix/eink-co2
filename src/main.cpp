@@ -160,10 +160,10 @@ void loop() {
         delay(100);
     }
 
-    // Don't poll the SCD4x too often.
+    // Don't poll the SCD4x too often, but keep checking buttons.
     long now = millis();
     long since_update = max(now, lastUpdate) - min(now, lastUpdate);
-    if (got_first_measurement && since_update < 555) {
+    if (got_first_measurement && since_update < 5000) {
         delay(10);
         return;
     }
