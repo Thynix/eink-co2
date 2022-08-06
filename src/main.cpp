@@ -37,7 +37,9 @@ const uint32_t MAGENTA = pixels.Color(255, 0, 255);
 const uint32_t PURPLE = pixels.Color(128, 0, 128);
 const uint32_t HOT_PINK = pixels.Color(255, 0, 128);
 
-const uint8_t startup_brightness = 250;
+const uint8_t brightness_step = 10;
+// 250 to avoid moving from 0s to 5s after hitting maximum.
+const uint8_t max_brightness = 250;
 const uint8_t running_brightness = 10;
 uint8_t brightness;
 
@@ -68,9 +70,9 @@ void setup() {
     pinMode(BUTTON_C, INPUT_PULLUP);
     pinMode(BUTTON_D, INPUT_PULLUP);
 
-    // Turn off all pixels.
-    brightness = startup_brightness;
+    // Initialize and turn off all pixels.
     pixels.begin();
+    brightness = max_brightness;
     pixels.setBrightness(brightness);
     pixels.fill(OFF);
     pixels.show();
@@ -142,16 +144,28 @@ void loop() {
 
     // Dim lights on button B release.
     if (button_b.update(digitalRead(BUTTON_B)) && !button_b.get()) {
-        brightness = max((int) brightness - 10, 0);
-        pixels.setBrightness(brightness);
-        pixels.fill(get_co2_color(co2));
-        pixels.show();
+        brightness = max((int) brightness - brightness_step, 0);
+
+        if (brightness == 0) {
+            // Disable NeoPixels at 0 brightness.
+            digitalWrite(NEOPIXEL_POWER, HIGH);
+        } else {
+            pixels.setBrightness(brightness);
+            pixels.fill(get_co2_color(co2));
+            pixels.show();
+        }
     }
 
     // Brighten lights on button C release.
     if (button_c.update(digitalRead(BUTTON_C)) && !button_c.get()) {
-        // 250 to avoid moving from 0s to 5s after hitting maximum.
-        brightness = min((int) brightness + 10, 250);
+        if (brightness == 0) {
+            // Re-initialize NeoPixels if they were powered off.
+            digitalWrite(NEOPIXEL_POWER, LOW);
+            pixels.begin();
+        }
+
+        brightness = min((int) brightness + brightness_step, (int) max_brightness);
+
         pixels.setBrightness(brightness);
         pixels.fill(get_co2_color(co2));
         pixels.show();
