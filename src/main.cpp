@@ -37,8 +37,9 @@ const uint32_t MAGENTA = pixels.Color(255, 0, 255);
 const uint32_t PURPLE = pixels.Color(128, 0, 128);
 const uint32_t HOT_PINK = pixels.Color(255, 0, 128);
 
-const uint8_t startup_brightness = 128;
+const uint8_t startup_brightness = 250;
 const uint8_t running_brightness = 10;
+uint8_t brightness;
 
 void setup() {
     uint16_t error;
@@ -68,8 +69,9 @@ void setup() {
     pinMode(BUTTON_D, INPUT_PULLUP);
 
     // Turn off all pixels.
+    brightness = startup_brightness;
     pixels.begin();
-    pixels.setBrightness(startup_brightness);
+    pixels.setBrightness(brightness);
     pixels.fill(OFF);
     pixels.show();
 
@@ -138,20 +140,20 @@ void loop() {
 
     bool got_first_measurement = waitingForFirst == -1;
 
-    // Toggle lights on button A release.
-    if (button_a.update(digitalRead(BUTTON_A)) && !button_a.get()) {
-        lights = !lights;
-        if (lights) {
-            if (got_first_measurement) {
-                // brightness 0 is destructive, so reset the color.
-                pixels.setBrightness(running_brightness);
-                pixels.fill(get_co2_color(co2));
-            } else {
-                pixels.setBrightness(startup_brightness);
-            }
-        } else {
-            pixels.setBrightness(0);
-        }
+    // Dim lights on button B release.
+    if (button_b.update(digitalRead(BUTTON_B)) && !button_b.get()) {
+        brightness = max((int) brightness - 10, 0);
+        pixels.setBrightness(brightness);
+        pixels.fill(get_co2_color(co2));
+        pixels.show();
+    }
+
+    // Brighten lights on button C release.
+    if (button_c.update(digitalRead(BUTTON_C)) && !button_c.get()) {
+        // 250 to avoid moving from 0s to 5s after hitting maximum.
+        brightness = min((int) brightness + 10, 250);
+        pixels.setBrightness(brightness);
+        pixels.fill(get_co2_color(co2));
         pixels.show();
     }
 
@@ -206,9 +208,8 @@ void loop() {
     // Stop sweep and dim after first successful measurement.
     if (!got_first_measurement) {
         waitingForFirst = -1;
-        if (lights) {
-            pixels.setBrightness(running_brightness);
-        }
+        brightness = running_brightness;
+        pixels.setBrightness(brightness);
     }
 
     pixels.fill(get_co2_color(co2));
