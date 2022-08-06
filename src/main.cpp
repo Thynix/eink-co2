@@ -63,13 +63,6 @@ void setup() {
     pinMode(NEOPIXEL_POWER, OUTPUT);
     digitalWrite(NEOPIXEL_POWER, LOW);
 
-    pinMode(LED_BUILTIN, OUTPUT);
-
-    pinMode(BUTTON_A, INPUT_PULLUP);
-    pinMode(BUTTON_B, INPUT_PULLUP);
-    pinMode(BUTTON_C, INPUT_PULLUP);
-    pinMode(BUTTON_D, INPUT_PULLUP);
-
     // Initialize and turn off all pixels.
     pixels.begin();
     brightness = max_brightness;
@@ -124,6 +117,13 @@ void setup() {
         }
     }
 
+    pinMode(LED_BUILTIN, OUTPUT);
+
+    pinMode(BUTTON_A, INPUT_PULLUP);
+    pinMode(BUTTON_B, INPUT_PULLUP);
+    pinMode(BUTTON_C, INPUT_PULLUP);
+    pinMode(BUTTON_D, INPUT_PULLUP);
+
     Serial.println("Waiting for first measurement...");
 }
 
@@ -142,8 +142,13 @@ void loop() {
 
     bool got_first_measurement = waitingForFirst == -1;
 
+    bool a_released = button_a.update(digitalRead(BUTTON_A)) && !button_a.get();
+    bool b_released = button_b.update(digitalRead(BUTTON_B)) && !button_b.get();
+    bool c_released = button_c.update(digitalRead(BUTTON_C)) && !button_c.get();
+    bool d_released = button_d.update(digitalRead(BUTTON_D)) && !button_d.get();
+
     // Dim lights on button B release.
-    if (button_b.update(digitalRead(BUTTON_B)) && !button_b.get()) {
+    if (b_released) {
         brightness = max((int) brightness - brightness_step, 0);
 
         if (brightness == 0) {
@@ -157,7 +162,7 @@ void loop() {
     }
 
     // Brighten lights on button C release.
-    if (button_c.update(digitalRead(BUTTON_C)) && !button_c.get()) {
+    if (c_released) {
         if (brightness == 0) {
             // Re-initialize NeoPixels if they were powered off.
             digitalWrite(NEOPIXEL_POWER, LOW);
@@ -172,7 +177,7 @@ void loop() {
     }
 
     // Toggle displaying every update on button D release.
-    if (button_d.update(digitalRead(BUTTON_D)) && !button_d.get()) {
+    if (d_released) {
         display_every = !display_every;
         digitalWrite(LED_BUILTIN, display_every);
     }
@@ -294,7 +299,7 @@ uint32_t get_co2_color(uint16_t CO2) {
   if (CO2 < 400) return  BLUE;
   if (CO2 < 870) return  GREEN;
   if (CO2 < 1000) return YELLOW;
-  if (CO2 < 2000) return ORANGE;
+  if (CO2 < 2000) return RED;
   return                 MAGENTA;
   // clang-format on
 }
