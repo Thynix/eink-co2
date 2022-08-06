@@ -127,8 +127,6 @@ void loop() {
     int ret;
 
     bool got_first_measurement = waitingForFirst == -1;
-    long now = millis();
-    long since_update = max(now, lastUpdate) - min(now, lastUpdate);
 
     // Toggle lights on button A release.
     if (button_a.update(digitalRead(BUTTON_A)) && !button_a.get()) {
@@ -163,7 +161,12 @@ void loop() {
     }
 
     // Don't poll the SCD4x too often.
-    if (got_first_measurement && since_update < 555) return;
+    long now = millis();
+    long since_update = max(now, lastUpdate) - min(now, lastUpdate);
+    if (got_first_measurement && since_update < 555) {
+        delay(10);
+        return;
+    }
     lastUpdate = now;
 
     // Wait for the next SCD4x data release.
