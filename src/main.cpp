@@ -44,6 +44,18 @@ void setup() {
     uint16_t error;
     char errorMessage[256];
 
+    display.begin(THINKINK_MONO);
+
+    display.clearBuffer();
+    display.setTextColor(EPD_BLACK);
+    display.setFont(&FreeMonoBoldOblique24pt7b);
+    display.setTextSize(1);
+    display.setCursor(10, 40);
+    display.print("Starting");
+    display.setCursor(60, 90);
+    display.print("up");
+    display.display();
+
     // Pulling NeoPixel power pin low powers them.
     pinMode(NEOPIXEL_POWER, OUTPUT);
     digitalWrite(NEOPIXEL_POWER, LOW);
@@ -107,16 +119,6 @@ void setup() {
             delay(500);
         }
     }
-
-    display.begin(THINKINK_MONO);
-
-    display.clearBuffer();
-    display.setTextColor(EPD_BLACK);
-    display.setFont(&FreeMonoBoldOblique18pt7b);
-    display.setTextSize(1);
-    display.setCursor(0, 60);
-    display.print("Startup");
-    display.display();
 
     Serial.println("Waiting for first measurement...");
 }
