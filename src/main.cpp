@@ -50,12 +50,16 @@ void setup() {
     pixels.show();
 
     // Sweep a single purple pixel while waiting for serial.
+    long wait_start = millis();
     Serial.begin(115200);
     for (int i = 0; !Serial; i++) {
         pixels.fill(OFF);
         pixels.setPixelColor(i % 4, PURPLE);
         pixels.show();
         delay(100);
+        
+        // Time out after 2 seconds.
+        if (millis() - wait_start > 2000) break;
     }
 
     // Solid purple after serial.
