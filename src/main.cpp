@@ -8,6 +8,7 @@ Adafruit_NeoPixel pixels = Adafruit_NeoPixel(4, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ8
 
 uint32_t get_co2_color(uint16_t co2);
 
+const uint32_t OFF = pixels.Color(0, 0, 0);
 const uint32_t WHITE = pixels.Color(255, 255, 255);
 const uint32_t RED = pixels.Color(255, 0, 0);
 const uint32_t GREEN = pixels.Color(0, 255, 0);
@@ -40,14 +41,14 @@ void setup() {
     // Sweep a single purple pixel while waiting for serial.
     Serial.begin(115200);
     for (int i = 0; !Serial; i++) {
-        pixels.fill(0x000000);
-        pixels.setPixelColor(i % 4, 0xFF00FF);
+        pixels.fill(OFF);
+        pixels.setPixelColor(i % 4, PURPLE);
         pixels.show();
         delay(100);
     }
 
     // Solid purple after serial.
-    pixels.fill(0xFF00FF);
+    pixels.fill(PURPLE);
     pixels.show();
 
     Wire.begin();
@@ -67,12 +68,24 @@ void setup() {
         Serial.print("Failed to start periodic measurement: ");
         errorToString(error, errorMessage, 256);
         Serial.println(errorMessage);
+
+        // Without a periodic measurement started it won't get a measurement.
+        // Loop indefinitely and blink red pixels.
+        while (true) {
+            pixels.fill(RED);
+            pixels.show();
+            delay(500);
+            pixels.fill(OFF);
+            pixels.show();
+            delay(500);
+        }
     }
 
     Serial.println("Waiting for first measurement...");
 }
 
 void loop() {
+    // -1 when there's been a first measurement.
     static int waitingForFirst = 0;
     static long lastUpdate = millis();
     char errorMessage[256];
@@ -84,8 +97,8 @@ void loop() {
 
     // Sweep a single blue pixel while waiting for the first measurement.
     if (waitingForFirst >= 0) {
-        pixels.fill(0x000000);
-        pixels.setPixelColor(waitingForFirst % 4, 0x0000FF);
+        pixels.fill(OFF);
+        pixels.setPixelColor(waitingForFirst % 4, BLUE);
         pixels.show();
         waitingForFirst++;
         delay(100);
@@ -122,9 +135,10 @@ void loop() {
         return;
     }
 
-    // Stop sweep after first successful measurement.
+    // Stop sweep and dim after first successful measurement.
     if (waitingForFirst >= 0) {
         waitingForFirst = -1;
+        pixels.setBrightness(20);
     }
 
     pixels.fill(get_co2_color(co2));
