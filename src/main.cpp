@@ -2,9 +2,17 @@
 #include <SensirionI2CScd4x.h>
 #include <Wire.h>
 #include <Adafruit_NeoPixel.h>
+#include <Debouncer.h>
 
 SensirionI2CScd4x scd4x;
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(4, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
+
+const int debounce_ms = 100;
+
+Debouncer button_a(debounce_ms);
+Debouncer button_b(debounce_ms);
+Debouncer button_c(debounce_ms);
+Debouncer button_d(debounce_ms);
 
 uint32_t get_co2_color(uint16_t co2);
 
@@ -18,6 +26,9 @@ const uint32_t ORANGE = pixels.Color(255, 128, 0);
 const uint32_t MAGENTA = pixels.Color(255, 0, 255);
 const uint32_t PURPLE = pixels.Color(128, 0, 128);
 const uint32_t HOT_PINK = pixels.Color(255, 0, 128);
+
+const uint8_t startup_brightness = 128;
+const uint8_t running_brightness = 10;
 
 void setup() {
     uint16_t error;
@@ -34,8 +45,8 @@ void setup() {
 
     // Turn off all pixels.
     pixels.begin();
-    pixels.setBrightness(50);
-    pixels.fill(0x000000);
+    pixels.setBrightness(startup_brightness);
+    pixels.fill(OFF);
     pixels.show();
 
     // Sweep a single purple pixel while waiting for serial.
@@ -88,12 +99,34 @@ void loop() {
     // -1 when there's been a first measurement.
     static int waitingForFirst = 0;
     static long lastUpdate = millis();
+    static bool lights = true;
     char errorMessage[256];
     uint16_t dataReady;
+    static uint16_t co2;
+    float temperature;
+    float humidity;
     int ret;
 
+    bool got_first_measurement = waitingForFirst == -1;
     long now = millis();
     long since_update = max(now, lastUpdate) - min(now, lastUpdate);
+
+    // Toggle lights on button A release.
+    if (button_a.update(digitalRead(BUTTON_A)) && !button_a.get()) {
+        lights = !lights;
+        if (lights) {
+            if (got_first_measurement) {
+                // brightness 0 is destructive, so reset the color.
+                pixels.setBrightness(running_brightness);
+                pixels.fill(get_co2_color(co2));
+            } else {
+                pixels.setBrightness(startup_brightness);
+            }
+        } else {
+            pixels.setBrightness(0);
+        }
+        pixels.show();
+    }
 
     // Sweep a single blue pixel while waiting for the first measurement.
     if (waitingForFirst >= 0) {
@@ -105,7 +138,7 @@ void loop() {
     }
 
     // Don't poll the SCD4x too often.
-    if (waitingForFirst == -1 && since_update < 555) return;
+    if (got_first_measurement && since_update < 555) return;
     lastUpdate = now;
 
     // Wait for the next SCD4x data release.
@@ -122,9 +155,6 @@ void loop() {
         return;
     }
 
-    uint16_t co2;
-    float temperature;
-    float humidity;
     ret = scd4x.readMeasurement(co2, temperature, humidity);
     if (ret) {
         errorToString(ret, errorMessage, sizeof(errorMessage));
@@ -138,7 +168,9 @@ void loop() {
     // Stop sweep and dim after first successful measurement.
     if (waitingForFirst >= 0) {
         waitingForFirst = -1;
-        pixels.setBrightness(20);
+        if (lights) {
+            pixels.setBrightness(running_brightness);
+        }
     }
 
     pixels.fill(get_co2_color(co2));
