@@ -4,8 +4,8 @@
 #include <Adafruit_NeoPixel.h>
 #include <Debouncer.h>
 #include "Adafruit_ThinkInk.h"
-#include <Fonts/FreeMonoBold18pt7b.h>
-#include <Fonts/FreeMonoBold24pt7b.h>
+#include <Fonts/FreeMonoBoldOblique18pt7b.h>
+#include <Fonts/FreeMonoBoldOblique24pt7b.h>
 
 #define EPD_DC      7 
 #define EPD_CS      8
@@ -112,7 +112,7 @@ void setup() {
 
     display.clearBuffer();
     display.setTextColor(EPD_BLACK);
-    display.setFont(&FreeMonoBold24pt7b);
+    display.setFont(&FreeMonoBoldOblique18pt7b);
     display.setTextSize(1);
     display.setCursor(0, 60);
     display.print("Startup");
@@ -224,23 +224,26 @@ void loop() {
     // Update the display for the first measurement, or if showing every update,
     // or after a minute since the last update.
     if (!got_first_measurement || display_every || millis() - lastDisplay > 60000) {
-        static uint16_t previous_co2 = 0;
         display.clearBuffer();
         display.setTextColor(EPD_BLACK);
 
-        display.setFont(&FreeMonoBold24pt7b);
+        display.setFont(&FreeMonoBoldOblique24pt7b);
         display.setTextSize(2);
-        display.setCursor(0, 128 - 50);
+        display.setCursor(0, 128 - 55);
         display.print(co2);
 
+        display.setFont(&FreeMonoBoldOblique24pt7b);
         display.setTextSize(1);
-        display.setCursor(296 - (3*29), 128 - 12);
-        display.print("ppm");
+        display.setCursor(296 - (7*29) + 10, 128 - 15);
+        display.print("ppm CO");
 
-        if (previous_co2 != co2) {
-            display.display();
-        }
-        previous_co2 = co2;
+        display.setFont(&FreeMonoBoldOblique18pt7b);
+        display.setTextSize(1);
+        display.setCursor(296 - 25, 128 - 6);
+        display.print("2");
+
+        display.display();
+
         lastDisplay = millis();
     }
 }
