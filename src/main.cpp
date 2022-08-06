@@ -46,6 +46,8 @@ void setup() {
     pinMode(NEOPIXEL_POWER, OUTPUT);
     digitalWrite(NEOPIXEL_POWER, LOW);
 
+    pinMode(LED_BUILTIN, OUTPUT);
+
     pinMode(BUTTON_A, INPUT_PULLUP);
     pinMode(BUTTON_B, INPUT_PULLUP);
     pinMode(BUTTON_C, INPUT_PULLUP);
@@ -66,8 +68,8 @@ void setup() {
         pixels.show();
         delay(100);
 
-        // Time out after 2 seconds.
-        if (millis() - wait_start > 2000) break;
+        // Time out after 1 second.
+        if (millis() - wait_start > 1000) break;
     }
 
     // Solid purple after serial.
@@ -148,6 +150,7 @@ void loop() {
     // Toggle displaying every update on button D release.
     if (button_d.update(digitalRead(BUTTON_D)) && !button_d.get()) {
         display_every = !display_every;
+        digitalWrite(LED_BUILTIN, display_every);
     }
 
     // Sweep a single blue pixel while waiting for the first measurement.
