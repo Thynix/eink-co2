@@ -4,6 +4,8 @@
 #include <Adafruit_NeoPixel.h>
 #include <Debouncer.h>
 #include "Adafruit_ThinkInk.h"
+#include <Fonts/FreeMonoBold18pt7b.h>
+#include <Fonts/FreeMonoBold24pt7b.h>
 
 #define EPD_DC      7 
 #define EPD_CS      8
@@ -107,7 +109,13 @@ void setup() {
     }
 
     display.begin(THINKINK_MONO);
+
     display.clearBuffer();
+    display.setTextColor(EPD_BLACK);
+    display.setFont(&FreeMonoBold24pt7b);
+    display.setTextSize(1);
+    display.setCursor(0, 60);
+    display.print("Startup");
     display.display();
 
     Serial.println("Waiting for first measurement...");
@@ -220,12 +228,13 @@ void loop() {
         display.clearBuffer();
         display.setTextColor(EPD_BLACK);
 
-        display.setTextSize(12);
-        display.setCursor(0, 15);
+        display.setFont(&FreeMonoBold24pt7b);
+        display.setTextSize(2);
+        display.setCursor(0, 128 - 50);
         display.print(co2);
 
-        display.setTextSize(3);
-        display.setCursor(296 - (3*18), 128 - 24);
+        display.setTextSize(1);
+        display.setCursor(296 - (3*29), 128 - 12);
         display.print("ppm");
 
         if (previous_co2 != co2) {
