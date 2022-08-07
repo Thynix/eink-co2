@@ -272,7 +272,7 @@ void loop() {
 
 // clang-format off
 /*
- * 350-400 ppm     Normal background concentration in outdoor ambient air
+ * 350-415 ppm     Normal background concentration in outdoor ambient air
  * 870 ppm         American Society of Heating, Refrigeration, and
  *                 Air-conditioning Engineers indoor steady-state
  *                 recommendation.
@@ -296,8 +296,8 @@ void loop() {
 uint32_t get_co2_color(uint16_t CO2) {
   // clang-format off
   if (CO2 < 350) return  WHITE;
-  if (CO2 < 400) return  BLUE;
-  if (CO2 < 870) return  GREEN;
+  if (CO2 < 415) return  BLUE;
+  if (CO2 < 800) return  GREEN;
   if (CO2 < 1000) return YELLOW;
   if (CO2 < 2000) return RED;
   return                 MAGENTA;
