@@ -210,7 +210,7 @@ void loop() {
             digitalWrite(NEOPIXEL_POWER, HIGH);
         } else {
             pixels.setBrightness(brightness);
-            pixels.fill(get_co2_color(co2));
+            pixels.fill(current_tab == CO2_TAB ? get_co2_color(co2) : WHITE);
             pixels.show();
         }
     }
@@ -226,7 +226,7 @@ void loop() {
         brightness = min((int) brightness + brightness_step, (int) max_brightness);
 
         pixels.setBrightness(brightness);
-        pixels.fill(get_co2_color(co2));
+        pixels.fill(current_tab == CO2_TAB ? get_co2_color(co2) : WHITE);
         pixels.show();
     }
 
