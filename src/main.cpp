@@ -178,7 +178,13 @@ void loop() {
         }
 
         pixels.fill(OFF);
-        pixels.setPixelColor(current_tab % 4, PURPLE);
+
+        // Light starting from left instead of right so that movement matches
+        // the right-facing next tab arrow.
+        uint16_t tab_light = 3 - (current_tab % 4);
+        pixels.setPixelColor(tab_light, PURPLE);
+        Serial.println(tab_light);
+
         pixels.show();
 
         if (got_first_measurement) refresh_display(co2, temperature, humidity);
