@@ -18,7 +18,7 @@ SensirionI2CScd4x scd4x;
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(4, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
 ThinkInk_290_Grayscale4_T5 display(EPD_DC, EPD_RESET, EPD_CS, SRAM_CS, EPD_BUSY);
 
-const int debounce_ms = 100;
+const int debounce_ms = 20;
 
 Debouncer button_a(debounce_ms);
 Debouncer button_b(debounce_ms);
@@ -28,6 +28,11 @@ Debouncer button_d(debounce_ms);
 uint32_t get_co2_color(uint16_t co2);
 void refresh_display(uint16_t co2, float temperature, float humidity);
 void fatal_error_blink();
+void button_a_interrupt();
+void button_b_interrupt();
+void button_c_interrupt();
+void button_d_interrupt();
+void button_interrupt(Debouncer &debouncer, uint8_t button_pin, volatile bool &output);
 
 const uint32_t OFF = pixels.Color(0, 0, 0);
 const uint32_t WHITE = pixels.Color(255, 255, 255);
@@ -54,6 +59,11 @@ enum display_tab {
 };
 
 enum display_tab current_tab = CO2_TAB;
+
+volatile bool a_released;
+volatile bool b_released;
+volatile bool c_released;
+volatile bool d_released;
 
 void setup() {
     uint16_t error;
@@ -146,6 +156,11 @@ void setup() {
     pinMode(BUTTON_C, INPUT_PULLUP);
     pinMode(BUTTON_D, INPUT_PULLUP);
 
+    attachInterrupt(digitalPinToInterrupt(BUTTON_A), button_a_interrupt, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(BUTTON_B), button_b_interrupt, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(BUTTON_C), button_c_interrupt, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(BUTTON_D), button_d_interrupt, CHANGE);
+
     Serial.println("Waiting for first measurement...");
 }
 
@@ -164,11 +179,6 @@ void loop() {
     int ret;
 
     bool got_first_measurement = waitingForFirst == -1;
-
-    bool a_released = button_a.update(digitalRead(BUTTON_A)) && !button_a.get();
-    bool b_released = button_b.update(digitalRead(BUTTON_B)) && !button_b.get();
-    bool c_released = button_c.update(digitalRead(BUTTON_C)) && !button_c.get();
-    bool d_released = button_d.update(digitalRead(BUTTON_D)) && !button_d.get();
 
     // Cycle display tab on button A release.
     if (a_released) {
@@ -225,6 +235,12 @@ void loop() {
         digitalWrite(LED_BUILTIN, display_every);
     }
 
+    // Clear button released flags after processing.
+    a_released = false;
+    b_released = false;
+    c_released = false;
+    d_released = false;
+
     // Sweep a single blue pixel while waiting for the first measurement.
     if (!got_first_measurement) {
         pixels.fill(OFF);
@@ -234,11 +250,12 @@ void loop() {
         delay(100);
     }
 
-    // Don't poll the SCD4x too often, but keep checking buttons.
+    // Don't poll the SCD4x too often, but still act on button presses promptly:
+    // ~100 ms is minimum perceptable delay for interactivity.
     long now = millis();
     long since_update = max(now, lastUpdate) - min(now, lastUpdate);
     if (got_first_measurement && since_update < 5000) {
-        delay(10);
+        delay(93);
         return;
     }
     lastUpdate = now;
@@ -413,4 +430,29 @@ void fatal_error_blink() {
         pixels.show();
         delay(500);
     }
+}
+
+void button_a_interrupt() {
+    button_interrupt(button_a, BUTTON_A, a_released);
+}
+
+void button_b_interrupt() {
+    button_interrupt(button_b, BUTTON_B, b_released);
+}
+
+void button_c_interrupt() {
+    button_interrupt(button_c, BUTTON_C, c_released);
+}
+
+void button_d_interrupt() {
+    button_interrupt(button_d, BUTTON_D, d_released);
+}
+
+void button_interrupt(Debouncer &debouncer, uint8_t button_pin, volatile bool &output) {
+    bool released = debouncer.update(digitalRead(button_pin)) && !debouncer.get();
+
+    // Stickily set released - loop() clears it upon processing.
+    noInterrupts();
+    if (!output) output = released;
+    interrupts();
 }
