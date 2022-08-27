@@ -99,6 +99,7 @@ void setup() {
     // Sweep a single purple pixel while waiting for serial.
     long wait_start = millis();
     Serial.begin(115200);
+    // !Serial seems to always be true for the MagTag, which prevents exiting early.
     for (uint8_t i = 3; waitForSerial && millis() - wait_start < serialWaitTimeoutMs; i--) {
         pixels.fill(OFF);
         pixels.setPixelColor(i % 4, PURPLE);
