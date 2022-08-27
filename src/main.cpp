@@ -43,6 +43,15 @@ const uint8_t max_brightness = 250;
 const uint8_t running_brightness = 10;
 uint8_t brightness;
 
+enum display_tab {
+    CO2_TAB,
+    TEMPERATURE_TAB,
+    HUMIDITY_TAB,
+    TAB_COUNT,
+};
+
+enum display_tab current_tab = CO2_TAB;
+
 void setup() {
     uint16_t error;
     char errorMessage[256];
@@ -133,6 +142,7 @@ void loop() {
     static long lastDisplay = millis();
     static bool lights = true;
     static bool display_every = false;
+    static enum display_tab previous_displayed_tab = TAB_COUNT;
     char errorMessage[256];
     uint16_t dataReady;
     static uint16_t co2;
@@ -146,6 +156,18 @@ void loop() {
     bool b_released = button_b.update(digitalRead(BUTTON_B)) && !button_b.get();
     bool c_released = button_c.update(digitalRead(BUTTON_C)) && !button_c.get();
     bool d_released = button_d.update(digitalRead(BUTTON_D)) && !button_d.get();
+
+    // Cycle display tab on button A release.
+    if (a_released) {
+        current_tab = static_cast<display_tab>(static_cast<int>(current_tab) + 1);
+        if (current_tab >= TAB_COUNT) {
+            current_tab = CO2_TAB;
+        }
+
+        pixels.fill(OFF);
+        pixels.setPixelColor(current_tab % 4, PURPLE);
+        pixels.show();
+    }
 
     // Dim lights on button B release.
     if (b_released) {
@@ -231,7 +253,14 @@ void loop() {
         pixels.setBrightness(brightness);
     }
 
-    pixels.fill(get_co2_color(co2));
+    switch (current_tab) {
+    case CO2_TAB:
+        pixels.fill(get_co2_color(co2));
+        break;
+    default:
+        pixels.fill(OFF);
+        break;
+    }
     pixels.show();
 
     Serial.print("CO2:");
@@ -245,7 +274,9 @@ void loop() {
 
     // Update the display for the first measurement, or if showing every update,
     // or after a minute since the last update.
-    if (!got_first_measurement || display_every || millis() - lastDisplay > 60000) {
+    if (!got_first_measurement || display_every || current_tab != previous_displayed_tab || millis() - lastDisplay > 60000) {
+        previous_displayed_tab = current_tab;
+
         /*
          * Toggle builtin LED during display operations. (Relative to whether it's
          * already lit for rapid display refresh.)
@@ -255,6 +286,8 @@ void loop() {
         display.clearBuffer();
         display.setTextColor(EPD_BLACK);
 
+        switch (current_tab) {
+        case CO2_TAB:
         display.setFont(&FreeMonoBoldOblique24pt7b);
         display.setTextSize(2);
         display.setCursor(0, 128 - 55);
@@ -269,6 +302,38 @@ void loop() {
         display.setTextSize(1);
         display.setCursor(296 - 25, 128 - 6);
         display.print("2");
+            break;
+        case TEMPERATURE_TAB:
+                display.setFont(&FreeMonoBoldOblique24pt7b);
+                display.setTextSize(2);
+                display.setCursor(0, 128 - 55);
+                display.print((9/5) * temperature + 32, 1);
+
+                display.setFont(&FreeMonoBoldOblique24pt7b);
+                display.setTextSize(1);
+                display.setCursor(296 - (7*29) + 10, 128 - 15);
+                display.print("F");
+            break;
+        case HUMIDITY_TAB:
+                display.setFont(&FreeMonoBoldOblique24pt7b);
+                display.setTextSize(2);
+                display.setCursor(0, 128 - 55);
+                display.print(humidity, 1);
+                display.setTextSize(1);
+                display.print("%");
+
+                display.setFont(&FreeMonoBoldOblique24pt7b);
+                display.setTextSize(1);
+                display.setCursor(296 - (7*29) + 10, 128 - 15);
+                display.print("H");
+            break;
+        default:
+                display.setFont(&FreeMonoBoldOblique24pt7b);
+                display.setTextSize(2);
+                display.setCursor(0, 0);
+                display.print("tab??");
+            break;
+        }
 
         display.display();
 
