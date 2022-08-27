@@ -168,6 +168,7 @@ void loop() {
     static int waitingForFirst = 0;
     static long lastUpdate = millis();
     static long lastDisplay = millis();
+    static long tabLightStart = millis();
     static bool lights = true;
     static bool display_every = false;
     static enum display_tab previous_displayed_tab = TAB_COUNT;
@@ -252,6 +253,7 @@ void loop() {
 
     // Don't poll the SCD4x too often, but still act on button presses promptly:
     // ~100 ms is minimum perceptable delay for interactivity.
+    //   - via https://docs.microsoft.com/en-us/windows/apps/performance/responsive
     long now = millis();
     long since_update = max(now, lastUpdate) - min(now, lastUpdate);
     if (got_first_measurement && since_update < 5000) {
