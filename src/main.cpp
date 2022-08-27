@@ -288,20 +288,20 @@ void loop() {
 
         switch (current_tab) {
         case CO2_TAB:
-        display.setFont(&FreeMonoBoldOblique24pt7b);
-        display.setTextSize(2);
-        display.setCursor(0, 128 - 55);
-        display.print(co2);
+                display.setFont(&FreeMonoBoldOblique24pt7b);
+                display.setTextSize(2);
+                display.setCursor(0, 128 - 55);
+                display.print(co2);
 
-        display.setFont(&FreeMonoBoldOblique24pt7b);
-        display.setTextSize(1);
-        display.setCursor(296 - (7*29) + 10, 128 - 15);
-        display.print("ppm CO");
+                display.setFont(&FreeMonoBoldOblique24pt7b);
+                display.setTextSize(1);
+                display.setCursor(296 - (7*29) + 10, 128 - 15);
+                display.print("ppm CO");
 
-        display.setFont(&FreeMonoBoldOblique18pt7b);
-        display.setTextSize(1);
-        display.setCursor(296 - 25, 128 - 6);
-        display.print("2");
+                display.setFont(&FreeMonoBoldOblique18pt7b);
+                display.setTextSize(1);
+                display.setCursor(296 - 25, 128 - 6);
+                display.print("2");
             break;
         case TEMPERATURE_TAB:
                 display.setFont(&FreeMonoBoldOblique24pt7b);
