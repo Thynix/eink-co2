@@ -12,7 +12,9 @@ CO2 readings on an AdaFruit MagTag.
 ## Future Feature Ideas
 
 * Audible alarms
-* Split main into modules: CO2, display, alarm, lights
+* Actions could require pressing multiple buttons at once
+* Sensor cover: bolt on sides, snap-on top
+* Split main into modules: CO2, display, buttons, alarm, lights
 
 ## Attributions
 
