@@ -99,14 +99,11 @@ void setup() {
     // Sweep a single purple pixel while waiting for serial.
     long wait_start = millis();
     Serial.begin(115200);
-    for (int i = 0; waitForSerial && !Serial; i++) {
+    for (uint8_t i = 3; waitForSerial && millis() - wait_start < serialWaitTimeoutMs; i--) {
         pixels.fill(OFF);
         pixels.setPixelColor(i % 4, PURPLE);
         pixels.show();
         delay(100);
-
-        // Time out after 1 second.
-        if (millis() - wait_start > serialWaitTimeoutMs) break;
     }
 
     // Solid purple after serial.
@@ -179,7 +176,7 @@ void setup() {
 }
 
 void loop() {
-    static int waitingForFirst = 0;
+    static int waitingForFirst = 3;
     static long lastUpdate = millis();
     static long lastDisplay = millis();
     /*
@@ -263,7 +260,7 @@ void loop() {
     // Sweep a single blue pixel while waiting for the first measurement.
     if (!got_first_measurement) {
         pixels.fill(OFF);
-        pixels.setPixelColor(waitingForFirst % 4, BLUE);
+        pixels.setPixelColor(3 - (waitingForFirst % 4), BLUE);
         pixels.show();
         waitingForFirst++;
         delay(100);
