@@ -246,6 +246,12 @@ void loop() {
     // Update the display for the first measurement, or if showing every update,
     // or after a minute since the last update.
     if (!got_first_measurement || display_every || millis() - lastDisplay > 60000) {
+        /*
+         * Toggle builtin LED during display operations. (Relative to whether it's
+         * already lit for rapid display refresh.)
+         */
+        digitalWrite(LED_BUILTIN, !display_every);
+
         display.clearBuffer();
         display.setTextColor(EPD_BLACK);
 
@@ -267,6 +273,8 @@ void loop() {
         display.display();
 
         lastDisplay = millis();
+
+        digitalWrite(LED_BUILTIN, display_every);
     }
 }
 
