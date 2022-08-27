@@ -160,6 +160,16 @@ void setup() {
     pinMode(BUTTON_C, INPUT_PULLUP);
     pinMode(BUTTON_D, INPUT_PULLUP);
 
+    /*
+     * Set initial button debounce states to released. This replaces the
+     * assumption that they started low, which would cause them to
+     * immediately read as released when they're actually read.
+     */
+    button_a.update(HIGH);
+    button_b.update(HIGH);
+    button_c.update(HIGH);
+    button_d.update(HIGH);
+
     attachInterrupt(digitalPinToInterrupt(BUTTON_A), button_a_interrupt, CHANGE);
     attachInterrupt(digitalPinToInterrupt(BUTTON_B), button_b_interrupt, CHANGE);
     attachInterrupt(digitalPinToInterrupt(BUTTON_C), button_c_interrupt, CHANGE);
@@ -461,7 +471,7 @@ void button_d_interrupt() {
 }
 
 void button_interrupt(Debouncer &debouncer, uint8_t button_pin, volatile bool &output) {
-    bool released = debouncer.update(digitalRead(button_pin)) && !debouncer.get();
+    bool released = debouncer.update(digitalRead(button_pin)) && debouncer.get();
 
     // Stickily set released - loop() clears it upon processing.
     noInterrupts();
