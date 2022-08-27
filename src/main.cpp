@@ -25,6 +25,7 @@ Debouncer button_c(debounce_ms);
 Debouncer button_d(debounce_ms);
 
 uint32_t get_co2_color(uint16_t co2);
+void refresh_display(uint16_t co2, float temperature, float humidity);
 
 const uint32_t OFF = pixels.Color(0, 0, 0);
 const uint32_t WHITE = pixels.Color(255, 255, 255);
@@ -146,8 +147,8 @@ void loop() {
     char errorMessage[256];
     uint16_t dataReady;
     static uint16_t co2;
-    float temperature;
-    float humidity;
+    static float temperature;
+    static float humidity;
     int ret;
 
     bool got_first_measurement = waitingForFirst == -1;
@@ -167,6 +168,8 @@ void loop() {
         pixels.fill(OFF);
         pixels.setPixelColor(current_tab % 4, PURPLE);
         pixels.show();
+
+        if (got_first_measurement) refresh_display(co2, temperature, humidity);
     }
 
     // Dim lights on button B release.
@@ -274,14 +277,20 @@ void loop() {
 
     // Update the display for the first measurement, or if showing every update,
     // or after a minute since the last update.
-    if (!got_first_measurement || display_every || current_tab != previous_displayed_tab || millis() - lastDisplay > 60000) {
+    if (!got_first_measurement || display_every || millis() - lastDisplay > 60000) {
         previous_displayed_tab = current_tab;
+        refresh_display(co2, temperature, humidity);
+        lastDisplay = millis();
+    }
+}
 
+void refresh_display(uint16_t co2, float temperature, float humidity) {
         /*
          * Toggle builtin LED during display operations. (Relative to whether it's
-         * already lit for rapid display refresh.)
+         * already lit.)
          */
-        digitalWrite(LED_BUILTIN, !display_every);
+        bool starting_led =  digitalRead(LED_BUILTIN);
+        digitalWrite(LED_BUILTIN, !starting_led);
 
         display.clearBuffer();
         display.setTextColor(EPD_BLACK);
@@ -311,8 +320,10 @@ void loop() {
 
                 display.setFont(&FreeMonoBoldOblique24pt7b);
                 display.setTextSize(1);
+                display.setCursor(296 - 29, 0);
+                display.print("o");
                 display.setCursor(296 - (7*29) + 10, 128 - 15);
-                display.print("F");
+                display.print("Fahrenheit");
             break;
         case HUMIDITY_TAB:
                 display.setFont(&FreeMonoBoldOblique24pt7b);
@@ -325,7 +336,7 @@ void loop() {
                 display.setFont(&FreeMonoBoldOblique24pt7b);
                 display.setTextSize(1);
                 display.setCursor(296 - (7*29) + 10, 128 - 15);
-                display.print("H");
+                display.print("humidity");
             break;
         default:
                 display.setFont(&FreeMonoBoldOblique24pt7b);
@@ -337,10 +348,7 @@ void loop() {
 
         display.display();
 
-        lastDisplay = millis();
-
-        digitalWrite(LED_BUILTIN, display_every);
-    }
+        digitalWrite(LED_BUILTIN, starting_led);
 }
 
 // clang-format off
