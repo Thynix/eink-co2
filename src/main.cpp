@@ -320,9 +320,9 @@ void refresh_display(uint16_t co2, float temperature, float humidity) {
 
                 display.setFont(&FreeMonoBoldOblique24pt7b);
                 display.setTextSize(1);
-                display.setCursor(296 - 29, 0);
+                display.setCursor(296 - 60, 23);
                 display.print("o");
-                display.setCursor(296 - (7*29) + 10, 128 - 15);
+                display.setCursor(296 - (10*29), 128 - 15);
                 display.print("Fahrenheit");
             break;
         case HUMIDITY_TAB:
@@ -335,7 +335,7 @@ void refresh_display(uint16_t co2, float temperature, float humidity) {
 
                 display.setFont(&FreeMonoBoldOblique24pt7b);
                 display.setTextSize(1);
-                display.setCursor(296 - (7*29) + 10, 128 - 15);
+                display.setCursor(296 - (8*29), 128 - 15);
                 display.print("humidity");
             break;
         default:
