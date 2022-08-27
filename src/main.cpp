@@ -52,7 +52,7 @@ const uint8_t brightness_step = 10;
 const uint8_t max_brightness = 250;
 const uint8_t running_brightness = 10;
 // How long to show tab or brightness changes?
-const long light_indicator_ms = 200;
+const long light_indicator_ms = 1500;
 uint8_t brightness;
 
 enum display_tab {
