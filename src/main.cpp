@@ -264,7 +264,7 @@ void loop() {
     // Turn off the light - or restore CO2 color code - when the indication
     // time has elapsed.
     long sinceStart = max(now, lightStart) - min(now, lightStart);
-    if (sinceStart > light_indicator_ms) {
+    if (got_first_measurement && sinceStart > light_indicator_ms) {
         set_color(co2, lightStart, sinceStart);
     }
 
