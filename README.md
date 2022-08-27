@@ -15,6 +15,8 @@ CO2 readings on an AdaFruit MagTag.
 * Actions could require pressing multiple buttons at once
 * Sensor cover: bolt on sides, snap-on top
 * Split main into modules: CO2, display, buttons, alarm, lights
+* Use setAmbientPressure() instead of setSensorAltitude() if pressure sensor present.
+* Accept message to display in fatal_error_blink()
 
 ## Attributions
 

@@ -4,6 +4,7 @@
 #include <Adafruit_NeoPixel.h>
 #include <Debouncer.h>
 #include "Adafruit_ThinkInk.h"
+#include "config.h"
 #include <Fonts/FreeMonoBoldOblique18pt7b.h>
 #include <Fonts/FreeMonoBoldOblique24pt7b.h>
 
@@ -26,6 +27,7 @@ Debouncer button_d(debounce_ms);
 
 uint32_t get_co2_color(uint16_t co2);
 void refresh_display(uint16_t co2, float temperature, float humidity);
+void fatal_error_blink();
 
 const uint32_t OFF = pixels.Color(0, 0, 0);
 const uint32_t WHITE = pixels.Color(255, 255, 255);
@@ -83,14 +85,14 @@ void setup() {
     // Sweep a single purple pixel while waiting for serial.
     long wait_start = millis();
     Serial.begin(115200);
-    for (int i = 0; !Serial; i++) {
+    for (int i = 0; waitForSerial && !Serial; i++) {
         pixels.fill(OFF);
         pixels.setPixelColor(i % 4, PURPLE);
         pixels.show();
         delay(100);
 
         // Time out after 1 second.
-        if (millis() - wait_start > 1000) break;
+        if (millis() - wait_start > serialWaitTimeoutMs) break;
     }
 
     // Solid purple after serial.
@@ -109,6 +111,24 @@ void setup() {
         Serial.println(errorMessage);
     }
 
+    error = scd4x.setSensorAltitude(sensorAltitude);
+    if (error) {
+        Serial.print("Failed to set sensor altitude: ");
+        errorToString(error, errorMessage, 256);
+        Serial.println(errorMessage);
+
+        fatal_error_blink();
+    }
+
+    error = scd4x.setTemperatureOffset(tOffset);
+    if (error) {
+        Serial.print("Failed to set sensor temperature offset: ");
+        errorToString(error, errorMessage, 256);
+        Serial.println(errorMessage);
+
+        fatal_error_blink();
+    }
+
     error = scd4x.startPeriodicMeasurement();
     if (error) {
         Serial.print("Failed to start periodic measurement: ");
@@ -116,15 +136,7 @@ void setup() {
         Serial.println(errorMessage);
 
         // Without a periodic measurement started it won't get a measurement.
-        // Loop indefinitely and blink red pixels.
-        while (true) {
-            pixels.fill(RED);
-            pixels.show();
-            delay(500);
-            pixels.fill(OFF);
-            pixels.show();
-            delay(500);
-        }
+        fatal_error_blink();
     }
 
     pinMode(LED_BUILTIN, OUTPUT);
@@ -316,7 +328,7 @@ void refresh_display(uint16_t co2, float temperature, float humidity) {
                 display.setFont(&FreeMonoBoldOblique24pt7b);
                 display.setTextSize(2);
                 display.setCursor(0, 128 - 55);
-                display.print((9/5) * temperature + 32, 1);
+                display.print(((9.0/5) * temperature) + 32, 1);
 
                 display.setFont(&FreeMonoBoldOblique24pt7b);
                 display.setTextSize(1);
@@ -383,4 +395,16 @@ uint32_t get_co2_color(uint16_t CO2) {
   if (CO2 < 2000) return RED;
   return                 MAGENTA;
   // clang-format on
+}
+
+// Loop indefinitely and blink red pixels.
+void fatal_error_blink() {
+    while (true) {
+        pixels.fill(RED);
+        pixels.show();
+        delay(500);
+        pixels.fill(OFF);
+        pixels.show();
+        delay(500);
+    }
 }
