@@ -33,6 +33,8 @@ void button_b_interrupt();
 void button_c_interrupt();
 void button_d_interrupt();
 void button_interrupt(Debouncer &debouncer, uint8_t button_pin, volatile bool &output);
+void set_color(uint16_t co2, long sinceStart, long &lightStart);
+void set_color(uint16_t co2, long &lightStart);
 
 const uint32_t OFF = pixels.Color(0, 0, 0);
 const uint32_t WHITE = pixels.Color(255, 255, 255);
@@ -49,6 +51,8 @@ const uint8_t brightness_step = 10;
 // 250 to avoid moving from 0s to 5s after hitting maximum.
 const uint8_t max_brightness = 250;
 const uint8_t running_brightness = 10;
+// How long to show tab or brightness changes?
+const long light_indicator_ms = 200;
 uint8_t brightness;
 
 enum display_tab {
@@ -168,7 +172,13 @@ void loop() {
     static int waitingForFirst = 0;
     static long lastUpdate = millis();
     static long lastDisplay = millis();
-    static long tabLightStart = millis();
+    /*
+     * When did the lights turn on?
+     *
+     * CO2 always has the color code if lights are on, but others don't. This
+     * allows them to turn the lights off.
+     */
+    static long lightStart = millis();
     static bool lights = true;
     static bool display_every = false;
     static enum display_tab previous_displayed_tab = TAB_COUNT;
@@ -194,9 +204,9 @@ void loop() {
         // the right-facing next tab arrow.
         uint16_t tab_light = 3 - (current_tab % 4);
         pixels.setPixelColor(tab_light, PURPLE);
-        Serial.println(tab_light);
 
         pixels.show();
+        lightStart = millis();
 
         if (got_first_measurement) refresh_display(co2, temperature, humidity);
     }
@@ -210,8 +220,7 @@ void loop() {
             digitalWrite(NEOPIXEL_POWER, HIGH);
         } else {
             pixels.setBrightness(brightness);
-            pixels.fill(current_tab == CO2_TAB ? get_co2_color(co2) : WHITE);
-            pixels.show();
+            set_color(co2, lightStart);
         }
     }
 
@@ -226,8 +235,7 @@ void loop() {
         brightness = min((int) brightness + brightness_step, (int) max_brightness);
 
         pixels.setBrightness(brightness);
-        pixels.fill(current_tab == CO2_TAB ? get_co2_color(co2) : WHITE);
-        pixels.show();
+        set_color(co2, lightStart);
     }
 
     // Toggle displaying every update on button D release.
@@ -251,10 +259,18 @@ void loop() {
         delay(100);
     }
 
+    long now = millis();
+
+    // Turn off the light - or restore CO2 color code - when the indication
+    // time has elapsed.
+    long sinceStart = max(now, lightStart) - min(now, lightStart);
+    if (sinceStart > light_indicator_ms) {
+        set_color(co2, lightStart, sinceStart);
+    }
+
     // Don't poll the SCD4x too often, but still act on button presses promptly:
     // ~100 ms is minimum perceptable delay for interactivity.
     //   - via https://docs.microsoft.com/en-us/windows/apps/performance/responsive
-    long now = millis();
     long since_update = max(now, lastUpdate) - min(now, lastUpdate);
     if (got_first_measurement && since_update < 5000) {
         delay(93);
@@ -293,15 +309,9 @@ void loop() {
         pixels.setBrightness(brightness);
     }
 
-    switch (current_tab) {
-    case CO2_TAB:
-        pixels.fill(get_co2_color(co2));
-        break;
-    default:
-        pixels.fill(OFF);
-        break;
-    }
-    pixels.show();
+    // Only set a color whenever there's a new measurement for the CO2 tab.
+    // If this were unconditional, other tabs would blink every measurement.
+    if (current_tab == CO2_TAB) set_color(co2, lightStart);
 
     Serial.print("CO2:");
     Serial.print(co2);
@@ -457,4 +467,14 @@ void button_interrupt(Debouncer &debouncer, uint8_t button_pin, volatile bool &o
     noInterrupts();
     if (!output) output = released;
     interrupts();
+}
+
+void set_color(uint16_t co2, long &lightStart) {
+    set_color(co2, 0, lightStart);
+}
+
+void set_color(uint16_t co2, long sinceStart, long &lightStart) {
+    pixels.fill(current_tab == CO2_TAB ? get_co2_color(co2) : (sinceStart > light_indicator_ms ? OFF : WHITE));
+    pixels.show();
+    lightStart = millis();
 }
