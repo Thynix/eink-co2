@@ -3,20 +3,16 @@
 #include <Wire.h>
 #include <Adafruit_NeoPixel.h>
 #include <Debouncer.h>
-#include "Adafruit_ThinkInk.h"
 #include "config.h"
+
+#include <GxEPD2_BW.h>
+
 #include <Fonts/FreeMonoBoldOblique18pt7b.h>
 #include <Fonts/FreeMonoBoldOblique24pt7b.h>
 
-#define EPD_DC      7 
-#define EPD_CS      8
-#define EPD_BUSY    -1
-#define SRAM_CS     -1 
-#define EPD_RESET   6
-
 SensirionI2CScd4x scd4x;
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(4, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
-ThinkInk_290_Grayscale4_T5 display(EPD_DC, EPD_RESET, EPD_CS, SRAM_CS, EPD_BUSY);
+GxEPD2_BW<GxEPD2_290_T5, GxEPD2_290_T5::HEIGHT> display(GxEPD2_290_T5(EPD_CS, EPD_DC, EPD_RESET, -1));
 
 const int debounce_ms = 20;
 
@@ -52,7 +48,7 @@ const uint8_t brightness_step = 10;
 const uint8_t max_brightness = 250;
 const uint8_t running_brightness = 10;
 // How long to show tab or brightness changes?
-const long light_indicator_ms = 1500;
+const long light_indicator_ms = 500;
 uint8_t brightness;
 
 enum display_tab {
@@ -73,10 +69,22 @@ void setup() {
     uint16_t error;
     char errorMessage[256];
 
-    display.begin(THINKINK_MONO);
+    // Sweep a single purple pixel while waiting for serial.
+    long wait_start = millis();
+    Serial.begin(115200);
+    // !Serial seems to always be true for the MagTag, which prevents exiting early.
+    for (uint8_t i = 3; waitForSerial && millis() - wait_start < serialWaitTimeoutMs; i--) {
+        pixels.fill(OFF);
+        pixels.setPixelColor(i % 4, PURPLE);
+        pixels.show();
+        delay(100);
+    }
 
-    display.clearBuffer();
-    display.setTextColor(EPD_BLACK);
+    display.init(115200); // enable diagnostic output on Serial
+    display.setRotation(3);
+    display.setTextColor(GxEPD_BLACK);
+
+    display.firstPage();
     display.setFont(&FreeMonoBoldOblique24pt7b);
     display.setTextSize(1);
     display.setCursor(10, 40);
@@ -95,17 +103,6 @@ void setup() {
     pixels.setBrightness(brightness);
     pixels.fill(OFF);
     pixels.show();
-
-    // Sweep a single purple pixel while waiting for serial.
-    long wait_start = millis();
-    Serial.begin(115200);
-    // !Serial seems to always be true for the MagTag, which prevents exiting early.
-    for (uint8_t i = 3; waitForSerial && millis() - wait_start < serialWaitTimeoutMs; i--) {
-        pixels.fill(OFF);
-        pixels.setPixelColor(i % 4, PURPLE);
-        pixels.show();
-        delay(100);
-    }
 
     // Solid purple after serial.
     pixels.fill(PURPLE);
@@ -347,8 +344,8 @@ void refresh_display(uint16_t co2, float temperature, float humidity) {
         bool starting_led =  digitalRead(LED_BUILTIN);
         digitalWrite(LED_BUILTIN, !starting_led);
 
-        display.clearBuffer();
-        display.setTextColor(EPD_BLACK);
+        display.firstPage();
+        display.setTextColor(GxEPD_BLACK);
 
         switch (current_tab) {
         case CO2_TAB:
@@ -401,7 +398,7 @@ void refresh_display(uint16_t co2, float temperature, float humidity) {
             break;
         }
 
-        display.display();
+        display.display(true);
 
         digitalWrite(LED_BUILTIN, starting_led);
 }
